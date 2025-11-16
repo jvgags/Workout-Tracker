@@ -51,7 +51,7 @@ body {
 /* Hamburger */
 .hamburger {
     width: 30px;
-    height: 24px;
+    height: 30px;
     display: flex;
     flex-direction: column;
     justify-content: space-around;
@@ -271,14 +271,52 @@ textarea {
 /* Exercise Rows */
 .exercise-row {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr 40px;
+    grid-template-columns: 1.5fr 2fr 0.8fr 0.8fr 1fr 1.2fr 40px;
     gap: 10px;
-    margin-bottom: 10px;
-    align-items: center;
+    margin-bottom: 15px;
+    align-items: end;
+}
+
+.input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.input-wrapper label {
+    font-weight: 600;
+    color: #667eea;
+    font-size: .94em;
+    margin: 0;
+    padding: 0;
 }
 
 .exercise-row input, .exercise-row select {
     margin: 0;
+}
+
+.supersetHeader-label {
+    justify-content: center;
+    text-align: center;
+}
+
+.superset-label {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    height: 44px;
+}
+
+.superset-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.set-number {
+    text-align: center;
 }
 
 .remove-btn {
@@ -371,22 +409,40 @@ textarea {
     font-weight: 600;
 }
 
-/* Exercise Library */
+/* Exercise Library - Updated for Grouping */
 .exercise-category {
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 12px;
 }
 
-.exercise-category h4 {
+.category-header {
     color: #667eea;
-    margin-bottom: 10px;
-    padding-bottom: 5px;
-    border-bottom: 2px solid #667eea;
+    font-size: 20px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 3px solid #667eea;
+}
+
+.exercise-subcategory {
+    margin-bottom: 15px;
+    padding-left: 10px;
+}
+
+.subcategory-header {
+    color: #764ba2;
+    font-size: 16px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #e0e0e0;
 }
 
 .exercise-list {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    padding-top: 8px;
 }
 
 .exercise-tag {
@@ -394,20 +450,75 @@ textarea {
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: #f0f0f0;
+    background: white;
+    border: 1px solid #e0e0e0;
     border-radius: 20px;
     font-size: 14px;
+    transition: all 0.2s;
 }
 
-.exercise-tag button {
+.exercise-tag.disabled {
+    opacity: 0.5;
+    background: #f5f5f5;
+}
+
+.exercise-tag.disabled .exercise-name {
+    text-decoration: line-through;
+    color: #999;
+}
+
+.exercise-tag:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.exercise-name {
+    flex: 1;
+}
+
+.video-link {
+    text-decoration: none;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.video-link:hover {
+    transform: scale(1.2);
+}
+
+.edit-btn,
+.toggle-btn,
+.delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    transition: transform 0.2s;
+}
+
+.edit-btn:hover,
+.toggle-btn:hover {
+    transform: scale(1.2);
+}
+
+.delete-btn {
     background: #ff4444;
     color: white;
-    border: none;
     border-radius: 50%;
     width: 20px;
     height: 20px;
-    cursor: pointer;
     font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-btn:hover {
+    background: #cc0000;
+    transform: scale(1.1);
 }
 
 /* Filter Bar */
@@ -464,6 +575,13 @@ textarea {
 .modal-content label {
     display: block;
     margin: 15px 0;
+}
+
+.modal-content label input[type="text"],
+.modal-content label input[type="url"],
+.modal-content label select {
+    width: 100%;
+    margin-top: 5px;
 }
 
 .modal-content input[type="checkbox"] {
@@ -523,12 +641,25 @@ body.dark textarea {
 }
 
 body.dark .workout-card,
-body.dark .exercise-tag,
 body.dark .menu button,
 body.dark .menu .file-input-label,
 body.dark .secondary-btn {
     background: #3d3d3d;
     color: #e0e0e0;
+}
+
+body.dark .exercise-category {
+    background: #2d2d2d;
+}
+
+body.dark .exercise-tag {
+    background: #3d3d3d;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+body.dark .exercise-tag.disabled {
+    background: #2a2a2a;
 }
 
 body.dark .pr-table th {
@@ -537,6 +668,11 @@ body.dark .pr-table th {
 
 body.dark .exercise-item {
     border-color: #444;
+}
+
+body.dark .subcategory-header {
+    color: #9d7aba;
+    border-bottom-color: #444;
 }
 
 /* Responsive */
@@ -560,6 +696,15 @@ body.dark .exercise-item {
 
     .exercise-row {
         grid-template-columns: 1fr;
+        background: #f9f9f9;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        align-items: stretch;
+    }
+
+    .input-wrapper {
+        width: 100%;
     }
 
     .stats-grid {
@@ -569,5 +714,17 @@ body.dark .exercise-item {
     .streak-display {
         font-size: 14px;
         padding: 6px 12px;
+    }
+
+    .exercise-category {
+        padding: 15px;
+    }
+
+    .category-header {
+        font-size: 18px;
+    }
+
+    .subcategory-header {
+        font-size: 14px;
     }
 }

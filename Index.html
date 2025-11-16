@@ -66,10 +66,10 @@
         <!-- Log Workout Tab -->
         <div id="log-tab" class="tab-content active">
             <section class="card">
-                <h2>Log Today's Workout</h2>
+                <h2 id="workoutTitle">Log Today's Workout</h2>
                 <form id="workoutForm" onsubmit="addWorkout(event)">
                     <div class="form-row">
-                        <input type="date" id="workoutDate" required>
+                        <input type="date" id="workoutDate" onchange="updateWorkoutTitle()" required>
                         <input type="text" id="workoutName" placeholder="Workout Name (e.g., Chest Day)" required>
                     </div>
                     <div class="form-row">
@@ -77,7 +77,7 @@
                     </div>
                     <h3>Exercises</h3>
                     <div id="exercisesList"></div>
-                    <button type="button" onclick="addExerciseRow()" class="secondary-btn">+ Add Exercise</button>
+                    <button type="button" onclick="addExerciseRow()" class="secondary-btn">+ Add another set</button>
                     <div class="form-actions">
                         <button type="submit" class="primary-btn">Save Workout</button>
                         <button type="button" onclick="clearWorkoutForm()" class="secondary-btn">Clear</button>
@@ -118,6 +118,9 @@
                         <option value="Core">Core</option>
                         <option value="Cardio">Cardio</option>
                         <option value="Other">Other</option>
+                    </select>
+                    <select id="newExerciseSubcategory">
+                        <option value="General">General</option>
                     </select>
                     <button onclick="addExerciseToLibrary()" class="primary-btn">Add Exercise</button>
                 </div>
@@ -199,7 +202,47 @@
                     <option value="kg">Kilograms (kg)</option>
                 </select>
             </label>
-            <button onclick="closeSettingsModal()" class="primary-btn">Close</button>
+            <div class="modal-buttons">
+                <button onclick="closeSettingsModal()" class="primary-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Exercise Modal -->
+    <div id="editExerciseModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Edit Exercise</h3>
+            <label>
+                Exercise Name:
+                <input type="text" id="editExerciseName" placeholder="Exercise Name" required>
+            </label>
+            <label>
+                Category:
+                <select id="editExerciseCategory" onchange="updateEditSubcategoryOptions()">
+                    <option value="Chest">Chest</option>
+                    <option value="Back">Back</option>
+                    <option value="Legs">Legs</option>
+                    <option value="Shoulders">Shoulders</option>
+                    <option value="Arms">Arms</option>
+                    <option value="Core">Core</option>
+                    <option value="Cardio">Cardio</option>
+                    <option value="Other">Other</option>
+                </select>
+            </label>
+            <label>
+                Subcategory:
+                <select id="editExerciseSubcategory">
+                    <option value="General">General</option>
+                </select>
+            </label>
+            <label>
+                Video Link (YouTube, etc.):
+                <input type="url" id="editExerciseVideoLink" placeholder="https://youtube.com/watch?v=...">
+            </label>
+            <div class="modal-buttons">
+                <button onclick="saveExerciseEdit()" class="primary-btn">Save Changes</button>
+                <button onclick="closeEditExerciseModal()" class="secondary-btn">Cancel</button>
+            </div>
         </div>
     </div>
 

@@ -87,6 +87,9 @@ window.onload = async function() {
     document.getElementById('workoutDate').valueAsDate = new Date();
     document.getElementById('measurementDate').valueAsDate = new Date();
 
+    // Update workout title with day of week
+    updateWorkoutTitle();
+
     // Add first exercise row
     addExerciseRow();
 
@@ -109,6 +112,10 @@ window.onload = async function() {
             setEncryptionKey();
         }
     });
+
+    // Update subcategory dropdown when main category changes
+    document.getElementById('newExerciseCategory').addEventListener('change', updateSubcategoryOptions);
+    updateSubcategoryOptions();
 };
 
 /* ========== ENCRYPTION KEY ========== */
@@ -196,17 +203,44 @@ async function loadData() {
 
 function getDefaultExercises() {
     return [
-        { name: 'Bench Press', category: 'Chest' },
-        { name: 'Squat', category: 'Legs' },
-        { name: 'Deadlift', category: 'Back' },
-        { name: 'Overhead Press', category: 'Shoulders' },
-        { name: 'Barbell Row', category: 'Back' },
-        { name: 'Pull-ups', category: 'Back' },
-        { name: 'Bicep Curls', category: 'Arms' },
-        { name: 'Tricep Dips', category: 'Arms' },
-        { name: 'Leg Press', category: 'Legs' },
-        { name: 'Running', category: 'Cardio' }
+        { name: 'Bench Press', category: 'Chest', subcategory: 'Upper Chest', videoLink: '', disabled: false },
+        { name: 'Incline Dumbbell Press', category: 'Chest', subcategory: 'Upper Chest', videoLink: '', disabled: false },
+        { name: 'Cable Flyes', category: 'Chest', subcategory: 'Lower Chest', videoLink: '', disabled: false },
+        { name: 'Squat', category: 'Legs', subcategory: 'Quadriceps', videoLink: '', disabled: false },
+        { name: 'Leg Press', category: 'Legs', subcategory: 'Quadriceps', videoLink: '', disabled: false },
+        { name: 'Romanian Deadlift', category: 'Legs', subcategory: 'Hamstrings', videoLink: '', disabled: false },
+        { name: 'Leg Curls', category: 'Legs', subcategory: 'Hamstrings', videoLink: '', disabled: false },
+        { name: 'Calf Raises', category: 'Legs', subcategory: 'Calves', videoLink: '', disabled: false },
+        { name: 'Deadlift', category: 'Back', subcategory: 'Lower Back', videoLink: '', disabled: false },
+        { name: 'Barbell Row', category: 'Back', subcategory: 'Mid Back', videoLink: '', disabled: false },
+        { name: 'Pull-ups', category: 'Back', subcategory: 'Lats', videoLink: '', disabled: false },
+        { name: 'Lat Pulldown', category: 'Back', subcategory: 'Lats', videoLink: '', disabled: false },
+        { name: 'Overhead Press', category: 'Shoulders', subcategory: 'Front Delts', videoLink: '', disabled: false },
+        { name: 'Lateral Raises', category: 'Shoulders', subcategory: 'Side Delts', videoLink: '', disabled: false },
+        { name: 'Face Pulls', category: 'Shoulders', subcategory: 'Rear Delts', videoLink: '', disabled: false },
+        { name: 'Barbell Curl', category: 'Arms', subcategory: 'Biceps', videoLink: '', disabled: false },
+        { name: 'Hammer Curls', category: 'Arms', subcategory: 'Biceps', videoLink: '', disabled: false },
+        { name: 'Tricep Dips', category: 'Arms', subcategory: 'Triceps', videoLink: '', disabled: false },
+        { name: 'Tricep Pushdown', category: 'Arms', subcategory: 'Triceps', videoLink: '', disabled: false },
+        { name: 'Planks', category: 'Core', subcategory: 'Abs', videoLink: '', disabled: false },
+        { name: 'Russian Twists', category: 'Core', subcategory: 'Obliques', videoLink: '', disabled: false },
+        { name: 'Running', category: 'Cardio', subcategory: 'Running', videoLink: '', disabled: false },
+        { name: 'Cycling', category: 'Cardio', subcategory: 'Cycling', videoLink: '', disabled: false }
     ];
+}
+
+// Define category structure with subcategories
+function getCategoryStructure() {
+    return {
+        'Chest': ['Upper Chest', 'Mid Chest', 'Lower Chest', 'General'],
+        'Back': ['Lats', 'Mid Back', 'Lower Back', 'Traps', 'General'],
+        'Legs': ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves', 'General'],
+        'Shoulders': ['Front Delts', 'Side Delts', 'Rear Delts', 'General'],
+        'Arms': ['Biceps', 'Triceps', 'Forearms', 'General'],
+        'Core': ['Abs', 'Obliques', 'Lower Back', 'General'],
+        'Cardio': ['Running', 'Cycling', 'Swimming', 'Rowing', 'General'],
+        'Other': ['General']
+    };
 }
 
 /* ========== BACKUP & RESTORE ========== */
@@ -364,25 +398,99 @@ function updateWeekStreak() {
 
 /* ========== WORKOUT LOGGING ========== */
 
+function updateWorkoutTitle() {
+    const dateInput = document.getElementById('workoutDate');
+    const title = document.getElementById('workoutTitle');
+    const date = new Date(dateInput.value + 'T00:00:00');
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = days[date.getDay()];
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate.getTime() === today.getTime()) {
+        title.textContent = `Log Today's Workout (${dayName})`;
+    } else {
+        title.textContent = `Log Workout for ${dayName}`;
+    }
+}
+
 function addExerciseRow() {
     const container = document.getElementById('exercisesList');
     const row = document.createElement('div');
     row.className = 'exercise-row';
     
+    // Get all unique subcategories from enabled exercises only
+    const subcategories = [...new Set(exercises.filter(e => !e.disabled).map(e => e.subcategory || 'General'))].sort();
+    
     row.innerHTML = `
-        <select class="exercise-select" required>
-            <option value="">Select Exercise</option>
-            ${exercises.sort((a, b) => a.name.localeCompare(b.name)).map(ex => 
-                `<option value="${ex.name}">${ex.name}</option>`
-            ).join('')}
-        </select>
-        <input type="number" class="sets-input" placeholder="Sets" min="1" required>
-        <input type="number" class="reps-input" placeholder="Reps" min="1" required>
-        <input type="number" class="weight-input" placeholder="Weight (${settings.weightUnit})" step="0.5" min="0">
-        <button type="button" class="remove-btn" onclick="removeExerciseRow(this)">×</button>
+        <div class="input-wrapper">
+            <label>Group:</label>
+            <select class="group-select" onchange="updateExerciseDropdown(this)" required>
+                <option value="">Select Group</option>
+                ${subcategories.map(sub => 
+                    `<option value="${sub}">${sub}</option>`
+                ).join('')}
+            </select>
+        </div>
+        <div class="input-wrapper">
+            <label>Exercise:</label>
+            <select class="exercise-select" required disabled>
+                <option value="">Select Group First</option>
+            </select>
+        </div>
+        <div class="input-wrapper">
+            <label class="supersetHeader-label">Superset:</label>
+            <label class="superset-label">
+                <input type="checkbox" class="superset-checkbox">
+            </label>
+        </div>
+        <div class="input-wrapper">
+            <label>Set No.:</label>
+            <input type="number" class="set-number" placeholder="1" min="1" value="1" required>
+        </div>
+        <div class="input-wrapper">
+            <label>Weight:</label>
+            <input type="number" class="weight-input" placeholder="0" step="0.5" min="0">
+        </div>
+        <div class="input-wrapper">
+            <label>Reps/Seconds:</label>
+            <input type="number" class="reps-input" placeholder="0" min="1" required>
+        </div>
+        <div class="input-wrapper">
+            <label>&nbsp;</label>
+            <button type="button" class="remove-btn" onclick="removeExerciseRow(this)">×</button>
+        </div>
     `;
     
     container.appendChild(row);
+}
+
+function updateExerciseDropdown(groupSelect) {
+    const row = groupSelect.closest('.exercise-row');
+    const exerciseSelect = row.querySelector('.exercise-select');
+    const selectedGroup = groupSelect.value;
+    
+    if (!selectedGroup) {
+        exerciseSelect.disabled = true;
+        exerciseSelect.innerHTML = '<option value="">Select Group First</option>';
+        return;
+    }
+    
+    // Filter exercises by subcategory and exclude disabled ones
+    const filteredExercises = exercises
+        .filter(e => (e.subcategory || 'General') === selectedGroup && !e.disabled)
+        .sort((a, b) => a.name.localeCompare(b.name));
+    
+    exerciseSelect.disabled = false;
+    exerciseSelect.innerHTML = `
+        <option value="">Select Exercise</option>
+        ${filteredExercises.map(ex => 
+            `<option value="${ex.name}">${ex.name}</option>`
+        ).join('')}
+    `;
 }
 
 function removeExerciseRow(btn) {
@@ -406,17 +514,24 @@ function addWorkout(event) {
 
     exerciseRows.forEach(row => {
         const exerciseName = row.querySelector('.exercise-select').value;
-        const sets = parseInt(row.querySelector('.sets-input').value);
+        const setNumber = parseInt(row.querySelector('.set-number').value);
         const reps = parseInt(row.querySelector('.reps-input').value);
         const weight = parseFloat(row.querySelector('.weight-input').value) || 0;
+        const isSuperset = row.querySelector('.superset-checkbox').checked;
 
-        if (exerciseName && sets && reps) {
-            exerciseList.push({ exerciseName, sets, reps, weight });
+        if (exerciseName && setNumber && reps) {
+            exerciseList.push({ 
+                exerciseName, 
+                setNumber, 
+                reps, 
+                weight,
+                isSuperset 
+            });
 
             // Auto-add to library if enabled
             if (settings.autoAddExercises) {
                 if (!exercises.find(e => e.name === exerciseName)) {
-                    exercises.push({ name: exerciseName, category: 'Other' });
+                    exercises.push({ name: exerciseName, category: 'Other', subcategory: 'General' });
                 }
             }
         }
@@ -493,19 +608,33 @@ function updateHistory() {
         return;
     }
 
-    container.innerHTML = filtered.map(workout => `
-        <div class="workout-card">
-            <h4>${workout.name}</h4>
-            <div class="date">${new Date(workout.date).toLocaleDateString()}</div>
-            ${workout.notes ? `<p style="color:#666; margin-bottom:10px;">${workout.notes}</p>` : ''}
-            ${workout.exercises.map(ex => `
-                <div class="exercise-item">
-                    <strong>${ex.exerciseName}</strong>: ${ex.sets} sets × ${ex.reps} reps${ex.weight > 0 ? ` @ ${ex.weight} ${settings.weightUnit}` : ''}
-                </div>
-            `).join('')}
-            <button class="secondary-btn" style="margin-top:10px;" onclick="deleteWorkout(${workout.id})">Delete</button>
-        </div>
-    `).join('');
+    container.innerHTML = filtered.map(workout => {
+        // Group exercises by name and track sets
+        const groupedExercises = {};
+        workout.exercises.forEach(ex => {
+            if (!groupedExercises[ex.exerciseName]) {
+                groupedExercises[ex.exerciseName] = [];
+            }
+            groupedExercises[ex.exerciseName].push(ex);
+        });
+
+        return `
+            <div class="workout-card">
+                <h4>${workout.name}</h4>
+                <div class="date">${new Date(workout.date).toLocaleDateString()}</div>
+                ${workout.notes ? `<p style="color:#666; margin-bottom:10px;">${workout.notes}</p>` : ''}
+                ${Object.entries(groupedExercises).map(([exerciseName, sets]) => `
+                    <div class="exercise-item">
+                        <strong>${exerciseName}</strong>:
+                        ${sets.map(set => 
+                            `Set ${set.setNumber || 1}: ${set.reps} reps${set.weight > 0 ? ` @ ${set.weight} ${settings.weightUnit}` : ''}${set.isSuperset ? ' (Superset)' : ''}`
+                        ).join(', ')}
+                    </div>
+                `).join('')}
+                <button class="secondary-btn" style="margin-top:10px;" onclick="deleteWorkout(${workout.id})">Delete</button>
+            </div>
+        `;
+    }).join('');
 }
 
 function filterHistory() {
@@ -526,9 +655,22 @@ function deleteWorkout(id) {
 
 /* ========== EXERCISE LIBRARY ========== */
 
+function updateSubcategoryOptions() {
+    const category = document.getElementById('newExerciseCategory').value;
+    const subcategorySelect = document.getElementById('newExerciseSubcategory');
+    const structure = getCategoryStructure();
+    
+    const subcategories = structure[category] || ['General'];
+    
+    subcategorySelect.innerHTML = subcategories.map(sub => 
+        `<option value="${sub}">${sub}</option>`
+    ).join('');
+}
+
 function addExerciseToLibrary() {
     const name = document.getElementById('newExerciseName').value.trim();
     const category = document.getElementById('newExerciseCategory').value;
+    const subcategory = document.getElementById('newExerciseSubcategory').value;
 
     if (!name) {
         showToast('Please enter an exercise name');
@@ -540,7 +682,7 @@ function addExerciseToLibrary() {
         return;
     }
 
-    exercises.push({ name, category });
+    exercises.push({ name, category, subcategory, videoLink: '', disabled: false });
     autoSave();
     updateExerciseLibrary();
     
@@ -548,25 +690,143 @@ function addExerciseToLibrary() {
     showToast('Exercise added to library');
 }
 
+function openEditExerciseModal(exerciseName) {
+    const exercise = exercises.find(e => e.name === exerciseName);
+    if (!exercise) return;
+    
+    document.getElementById('editExerciseName').value = exercise.name;
+    document.getElementById('editExerciseCategory').value = exercise.category;
+    
+    // Update subcategory options for edit modal
+    const structure = getCategoryStructure();
+    const subcategories = structure[exercise.category] || ['General'];
+    const editSubcategorySelect = document.getElementById('editExerciseSubcategory');
+    editSubcategorySelect.innerHTML = subcategories.map(sub => 
+        `<option value="${sub}" ${sub === exercise.subcategory ? 'selected' : ''}>${sub}</option>`
+    ).join('');
+    
+    document.getElementById('editExerciseVideoLink').value = exercise.videoLink || '';
+    document.getElementById('editExerciseModal').dataset.originalName = exerciseName;
+    document.getElementById('editExerciseModal').style.display = 'flex';
+}
+
+function closeEditExerciseModal() {
+    document.getElementById('editExerciseModal').style.display = 'none';
+}
+
+function saveExerciseEdit() {
+    const originalName = document.getElementById('editExerciseModal').dataset.originalName;
+    const exercise = exercises.find(e => e.name === originalName);
+    if (!exercise) return;
+    
+    const newName = document.getElementById('editExerciseName').value.trim();
+    const newCategory = document.getElementById('editExerciseCategory').value;
+    const newSubcategory = document.getElementById('editExerciseSubcategory').value;
+    const newVideoLink = document.getElementById('editExerciseVideoLink').value.trim();
+    
+    if (!newName) {
+        showToast('Please enter an exercise name');
+        return;
+    }
+    
+    // Check if new name conflicts with another exercise
+    if (newName !== originalName && exercises.find(e => e.name.toLowerCase() === newName.toLowerCase())) {
+        showToast('An exercise with this name already exists');
+        return;
+    }
+    
+    // Update exercise
+    exercise.name = newName;
+    exercise.category = newCategory;
+    exercise.subcategory = newSubcategory;
+    exercise.videoLink = newVideoLink;
+    
+    // Update any workouts that reference the old name
+    if (newName !== originalName) {
+        workouts.forEach(workout => {
+            workout.exercises.forEach(ex => {
+                if (ex.exerciseName === originalName) {
+                    ex.exerciseName = newName;
+                }
+            });
+        });
+    }
+    
+    autoSave();
+    updateExerciseLibrary();
+    closeEditExerciseModal();
+    showToast('Exercise updated');
+}
+
+function updateEditSubcategoryOptions() {
+    const category = document.getElementById('editExerciseCategory').value;
+    const subcategorySelect = document.getElementById('editExerciseSubcategory');
+    const structure = getCategoryStructure();
+    
+    const subcategories = structure[category] || ['General'];
+    
+    subcategorySelect.innerHTML = subcategories.map(sub => 
+        `<option value="${sub}">${sub}</option>`
+    ).join('');
+}
+
+function toggleExerciseDisabled(exerciseName) {
+    const exercise = exercises.find(e => e.name === exerciseName);
+    if (!exercise) return;
+    
+    exercise.disabled = !exercise.disabled;
+    autoSave();
+    updateExerciseLibrary();
+    showToast(exercise.disabled ? 'Exercise disabled' : 'Exercise enabled');
+}
+
 function updateExerciseLibrary() {
     const container = document.getElementById('exerciseLibraryList');
     
-    const categories = [...new Set(exercises.map(e => e.category))].sort();
+    // Group exercises by category and subcategory
+    const grouped = {};
     
-    container.innerHTML = categories.map(category => {
-        const categoryExercises = exercises.filter(e => e.category === category).sort((a, b) => a.name.localeCompare(b.name));
+    exercises.forEach(ex => {
+        if (!grouped[ex.category]) {
+            grouped[ex.category] = {};
+        }
+        const subcat = ex.subcategory || 'General';
+        if (!grouped[ex.category][subcat]) {
+            grouped[ex.category][subcat] = [];
+        }
+        grouped[ex.category][subcat].push(ex);
+    });
+    
+    // Sort categories
+    const sortedCategories = Object.keys(grouped).sort();
+    
+    container.innerHTML = sortedCategories.map(category => {
+        const subcategories = grouped[category];
+        const sortedSubcategories = Object.keys(subcategories).sort();
         
         return `
             <div class="exercise-category">
-                <h4>${category}</h4>
-                <div class="exercise-list">
-                    ${categoryExercises.map(ex => `
-                        <div class="exercise-tag">
-                            ${ex.name}
-                            <button onclick="deleteExercise('${ex.name}')">×</button>
+                <h3 class="category-header">${category}</h3>
+                ${sortedSubcategories.map(subcategory => {
+                    const subcatExercises = subcategories[subcategory].sort((a, b) => a.name.localeCompare(b.name));
+                    
+                    return `
+                        <div class="exercise-subcategory">
+                            <h4 class="subcategory-header">${subcategory}</h4>
+                            <div class="exercise-list">
+                                ${subcatExercises.map(ex => `
+                                    <div class="exercise-tag ${ex.disabled ? 'disabled' : ''}">
+                                        <span class="exercise-name">${ex.name}</span>
+                                        ${ex.videoLink ? `<a href="${ex.videoLink}" target="_blank" class="video-link" title="Watch video">🎥</a>` : ''}
+                                        <button onclick="openEditExerciseModal('${ex.name.replace(/'/g, "\\'")}')" class="edit-btn" title="Edit">✏️</button>
+                                        <button onclick="toggleExerciseDisabled('${ex.name.replace(/'/g, "\\'")}')" class="toggle-btn" title="${ex.disabled ? 'Enable' : 'Disable'}">${ex.disabled ? '👁️' : '🚫'}</button>
+                                        <button onclick="deleteExercise('${ex.name.replace(/'/g, "\\'")}')" class="delete-btn" title="Delete">×</button>
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
-                    `).join('')}
-                </div>
+                    `;
+                }).join('')}
             </div>
         `;
     }).join('');
