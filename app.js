@@ -419,25 +419,43 @@ function updateWorkoutTitle() {
 
 function addExerciseRow() {
     const container = document.getElementById('exercisesList');
+    const previousRow = container.lastElementChild;
+    
     const row = document.createElement('div');
     row.className = 'exercise-row';
     
     // Get all unique subcategories from enabled exercises only
     const subcategories = [...new Set(exercises.filter(e => !e.disabled).map(e => e.subcategory || 'General'))].sort();
     
+    // Get values from previous row if it exists
+    let prevGroup = '';
+    let prevExercise = '';
+    let prevSetNumber = 1;
+    
+    if (previousRow) {
+        prevGroup = previousRow.querySelector('.group-select')?.value || '';
+        prevExercise = previousRow.querySelector('.exercise-select')?.value || '';
+        const prevSet = parseInt(previousRow.querySelector('.set-number')?.value) || 0;
+        
+        // Only increment set number if same exercise is selected
+        if (prevExercise && prevGroup) {
+            prevSetNumber = prevSet + 1;
+        }
+    }
+    
     row.innerHTML = `
         <div class="input-wrapper">
             <label>Group:</label>
-            <select class="group-select" onchange="updateExerciseDropdown(this)" required>
+            <select class="group-select" onchange="updateExerciseDropdown(this); resetSetNumber(this);" required>
                 <option value="">Select Group</option>
                 ${subcategories.map(sub => 
-                    `<option value="${sub}">${sub}</option>`
+                    `<option value="${sub}" ${sub === prevGroup ? 'selected' : ''}>${sub}</option>`
                 ).join('')}
             </select>
         </div>
         <div class="input-wrapper">
             <label>Exercise:</label>
-            <select class="exercise-select" required disabled>
+            <select class="exercise-select" onchange="resetSetNumber(this);" required ${!prevGroup ? 'disabled' : ''}>
                 <option value="">Select Group First</option>
             </select>
         </div>
@@ -449,7 +467,7 @@ function addExerciseRow() {
         </div>
         <div class="input-wrapper">
             <label>Set No.:</label>
-            <input type="number" class="set-number" placeholder="1" min="1" value="1" required>
+            <input type="number" class="set-number" placeholder="1" min="1" value="${prevSetNumber}" required>
         </div>
         <div class="input-wrapper">
             <label>Weight:</label>
@@ -466,6 +484,30 @@ function addExerciseRow() {
     `;
     
     container.appendChild(row);
+    
+    // If previous row had values, populate exercise dropdown and select it
+    if (prevGroup) {
+        const groupSelect = row.querySelector('.group-select');
+        updateExerciseDropdown(groupSelect);
+        
+        if (prevExercise) {
+            const exerciseSelect = row.querySelector('.exercise-select');
+            exerciseSelect.value = prevExercise;
+        }
+    }
+    
+    // Add tab listener to reps input for auto-adding next set
+    const repsInput = row.querySelector('.reps-input');
+    repsInput.addEventListener('keydown', handleRepsTab);
+    
+    // Focus first empty field
+    if (!prevGroup) {
+        row.querySelector('.group-select').focus();
+    } else if (!prevExercise) {
+        row.querySelector('.exercise-select').focus();
+    } else {
+        row.querySelector('.weight-input').focus();
+    }
 }
 
 function updateExerciseDropdown(groupSelect) {
@@ -493,10 +535,66 @@ function updateExerciseDropdown(groupSelect) {
     `;
 }
 
+function resetSetNumber(selectElement) {
+    const row = selectElement.closest('.exercise-row');
+    const container = document.getElementById('exercisesList');
+    const allRows = Array.from(container.children);
+    const currentIndex = allRows.indexOf(row);
+    
+    // Get current exercise selection
+    const currentExercise = row.querySelector('.exercise-select').value;
+    
+    if (!currentExercise) return;
+    
+    // Look at previous rows to determine set number
+    let setNumber = 1;
+    for (let i = currentIndex - 1; i >= 0; i--) {
+        const prevRow = allRows[i];
+        const prevExercise = prevRow.querySelector('.exercise-select').value;
+        
+        if (prevExercise === currentExercise) {
+            const prevSetNumber = parseInt(prevRow.querySelector('.set-number').value) || 0;
+            setNumber = prevSetNumber + 1;
+            break;
+        }
+    }
+    
+    row.querySelector('.set-number').value = setNumber;
+}
+
+function handleRepsTab(event) {
+    // Check if Tab key was pressed (without Shift)
+    if (event.key === 'Tab' && !event.shiftKey) {
+        const row = event.target.closest('.exercise-row');
+        const container = document.getElementById('exercisesList');
+        const allRows = Array.from(container.children);
+        const isLastRow = allRows[allRows.length - 1] === row;
+        
+        // Only auto-add if this is the last row
+        if (!isLastRow) return;
+        
+        // Check if all required fields are filled
+        const groupSelect = row.querySelector('.group-select');
+        const exerciseSelect = row.querySelector('.exercise-select');
+        const setNumberInput = row.querySelector('.set-number');
+        const repsInput = row.querySelector('.reps-input');
+        
+        const isComplete = groupSelect.value && 
+                          exerciseSelect.value && 
+                          setNumberInput.value && 
+                          repsInput.value;
+        
+        if (isComplete) {
+            event.preventDefault(); // Prevent default tab behavior
+            addExerciseRow();
+        }
+    }
+}
+
 function removeExerciseRow(btn) {
     const container = document.getElementById('exercisesList');
     if (container.children.length > 1) {
-        btn.parentElement.remove();
+        btn.closest('.exercise-row').remove();
     } else {
         showToast('At least one exercise is required');
     }
@@ -567,6 +665,7 @@ function clearWorkoutForm() {
     document.getElementById('workoutDate').valueAsDate = new Date();
     document.getElementById('exercisesList').innerHTML = '';
     addExerciseRow();
+    updateWorkoutTitle();
 }
 
 /* ========== HISTORY ========== */
