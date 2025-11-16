@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+</head>
+<body>
+    <!-- Toast Notification -->
+    <div id="toast"></div>
+
+    <!-- Encryption Key Modal -->
+    <div id="encryptionKeyModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Welcome to Workout Tracker</h3>
+            <p>Set an encryption key to secure your workout data:</p>
+            <input type="password" id="encryptionKeyInput" placeholder="Enter encryption key">
+            <p style="font-size:13px; color:#666;">
+                <strong>Important:</strong> Remember this key! You'll need it to restore backups.
+            </p>
+            <div class="modal-buttons">
+                <button onclick="setEncryptionKey()" class="primary-btn">Set Key & Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Bar -->
+    <div id="top-bar">
+        <div class="hamburger" id="hamburger">
+            <span></span><span></span><span></span>
+        </div>
+        <h1>Workout Tracker</h1>
+        <div class="streak-display">
+            <span class="streak-icon">🔥</span>
+            <span id="weekStreak">0</span> Weeks
+        </div>
+    </div>
+
+    <!-- Menu Overlay -->
+    <div id="menuOverlay" class="menu-overlay"></div>
+
+    <!-- Left Menu -->
+    <nav id="menu" class="menu">
+        <button onclick="createBackup(); closeMenu()">📦 Backup Data</button>
+        <label class="file-input-label">
+            <input type="file" id="restoreFile" accept=".workoutbackup" onchange="restoreFromBackup(this.files[0])" style="display:none;">
+            📥 Restore from Backup
+        </label>
+        <button onclick="toggleDarkMode(); closeMenu()">🌙 Dark Mode</button>
+        <button onclick="openSettingsModal(); closeMenu()">⚙️ Settings</button>
+    </nav>
+
+    <!-- Main Content -->
+    <div id="main-content">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('log')">Log Workout</button>
+            <button class="tab-btn" onclick="switchTab('history')">History</button>
+            <button class="tab-btn" onclick="switchTab('exercises')">Exercises</button>
+            <button class="tab-btn" onclick="switchTab('stats')">Stats & PRs</button>
+            <button class="tab-btn" onclick="switchTab('measurements')">Body Measurements</button>
+        </div>
+
+        <!-- Log Workout Tab -->
+        <div id="log-tab" class="tab-content active">
+            <section class="card">
+                <h2>Log Today's Workout</h2>
+                <form id="workoutForm" onsubmit="addWorkout(event)">
+                    <div class="form-row">
+                        <input type="date" id="workoutDate" required>
+                        <input type="text" id="workoutName" placeholder="Workout Name (e.g., Chest Day)" required>
+                    </div>
+                    <div class="form-row">
+                        <textarea id="workoutNotes" placeholder="Notes (optional)" rows="2"></textarea>
+                    </div>
+                    <h3>Exercises</h3>
+                    <div id="exercisesList"></div>
+                    <button type="button" onclick="addExerciseRow()" class="secondary-btn">+ Add Exercise</button>
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">Save Workout</button>
+                        <button type="button" onclick="clearWorkoutForm()" class="secondary-btn">Clear</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <section class="card">
+                <h2>Workout History</h2>
+                <div class="filter-bar">
+                    <input type="text" id="historySearch" placeholder="Search workouts..." oninput="filterHistory()">
+                    <select id="historyFilter" onchange="filterHistory()">
+                        <option value="all">All Time</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="year">This Year</option>
+                    </select>
+                </div>
+                <div id="historyList"></div>
+            </section>
+        </div>
+
+        <!-- Exercises Tab -->
+        <div id="exercises-tab" class="tab-content">
+            <section class="card">
+                <h2>Exercise Library</h2>
+                <div class="form-row">
+                    <input type="text" id="newExerciseName" placeholder="Exercise Name">
+                    <select id="newExerciseCategory">
+                        <option value="Chest">Chest</option>
+                        <option value="Back">Back</option>
+                        <option value="Legs">Legs</option>
+                        <option value="Shoulders">Shoulders</option>
+                        <option value="Arms">Arms</option>
+                        <option value="Core">Core</option>
+                        <option value="Cardio">Cardio</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <button onclick="addExerciseToLibrary()" class="primary-btn">Add Exercise</button>
+                </div>
+                <div id="exerciseLibraryList"></div>
+            </section>
+        </div>
+
+        <!-- Stats Tab -->
+        <div id="stats-tab" class="tab-content">
+            <section class="card">
+                <h2>Statistics & Personal Records</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Workouts</h3>
+                        <p class="stat-value" id="totalWorkouts">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>This Month</h3>
+                        <p class="stat-value" id="monthWorkouts">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Current Streak</h3>
+                        <p class="stat-value" id="currentStreak">0 weeks</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Best Streak</h3>
+                        <p class="stat-value" id="bestStreak">0 weeks</p>
+                    </div>
+                </div>
+                <h3>Personal Records</h3>
+                <div id="personalRecords"></div>
+            </section>
+        </div>
+
+        <!-- Measurements Tab -->
+        <div id="measurements-tab" class="tab-content">
+            <section class="card">
+                <h2>Body Measurements</h2>
+                <form id="measurementForm" onsubmit="addMeasurement(event)">
+                    <div class="form-row">
+                        <input type="date" id="measurementDate" required>
+                        <input type="number" step="0.1" id="bodyWeight" placeholder="Weight (lbs)">
+                        <input type="number" step="0.1" id="bodyFat" placeholder="Body Fat %">
+                    </div>
+                    <div class="form-row">
+                        <input type="number" step="0.1" id="chest" placeholder="Chest (in)">
+                        <input type="number" step="0.1" id="waist" placeholder="Waist (in)">
+                        <input type="number" step="0.1" id="hips" placeholder="Hips (in)">
+                    </div>
+                    <div class="form-row">
+                        <input type="number" step="0.1" id="biceps" placeholder="Biceps (in)">
+                        <input type="number" step="0.1" id="thighs" placeholder="Thighs (in)">
+                        <input type="number" step="0.1" id="calves" placeholder="Calves (in)">
+                    </div>
+                    <button type="submit" class="primary-btn">Save Measurement</button>
+                </form>
+                <h3>Measurement History</h3>
+                <div id="measurementHistory"></div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Settings</h3>
+            <label>
+                <input type="checkbox" id="weekStartMonday" onchange="saveSettings()">
+                Week starts on Monday (default: Sunday)
+            </label>
+            <label>
+                <input type="checkbox" id="autoAddExercises" onchange="saveSettings()" checked>
+                Auto-add new exercises to library
+            </label>
+            <label>
+                Weight Unit:
+                <select id="weightUnit" onchange="saveSettings()">
+                    <option value="lbs">Pounds (lbs)</option>
+                    <option value="kg">Kilograms (kg)</option>
+                </select>
+            </label>
+            <button onclick="closeSettingsModal()" class="primary-btn">Close</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
