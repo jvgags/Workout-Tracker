@@ -11,6 +11,11 @@ let settings = {
     theme: 'default'
 };
 
+// Calendar state
+let currentCalendarMonth = new Date().getMonth();
+let currentCalendarYear = new Date().getFullYear();
+let selectedDate = null;
+
 let wtEncryptionKey = localStorage.getItem('wtEncryptionKey');
 
 // IndexedDB Setup
@@ -101,6 +106,7 @@ window.onload = async function() {
     updateExerciseLibrary();
     updateMeasurementHistory();
     updatePersonalRecords();
+    renderCalendar();
 
     // Menu toggle
     document.getElementById('hamburger').addEventListener('click', toggleMenu);
@@ -602,7 +608,7 @@ function removeExerciseRow(btn) {
 function addWorkout(event) {
     event.preventDefault();
 
-    const date = document.getElementById('workoutDate').value;
+    const date = document.getElementById('workoutDate').value + "T00:00:00";
     const name = document.getElementById('workoutName').value.trim();
     const notes = document.getElementById('workoutNotes').value.trim();
 
@@ -655,6 +661,7 @@ function addWorkout(event) {
     updateStats();
     updateHistory();
     updatePersonalRecords();
+    renderCalendar(); // Update calendar to show new workout
     
     showToast('Workout logged successfully! 💪');
 }
@@ -669,6 +676,109 @@ function clearWorkoutForm() {
 
 /* ========== HISTORY ========== */
 
+function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const monthYearLabel = document.getElementById('calendarMonthYear');
+    
+    // Update header
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+    monthYearLabel.textContent = `${monthNames[currentCalendarMonth]} ${currentCalendarYear}`;
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(currentCalendarYear, currentCalendarMonth, 1);
+    const lastDay = new Date(currentCalendarYear, currentCalendarMonth + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+    
+    // Get dates with workouts
+    const workoutDates = new Set();
+    workouts.forEach(workout => {
+        const date = new Date(workout.date);
+        
+        if (date.getMonth() === currentCalendarMonth && date.getFullYear() === currentCalendarYear) {
+            workoutDates.add(date.getDate());
+        }
+    });
+    
+    // Build calendar
+    let html = '';
+    
+    // Day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+        html += `<div class="calendar-day-header">${day}</div>`;
+    });
+    
+    // Previous month days
+    const prevMonthDays = new Date(currentCalendarYear, currentCalendarMonth, 0).getDate();
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+        const day = prevMonthDays - i;
+        html += `<div class="calendar-day other-month">${day}</div>`;
+    }
+    
+    // Current month days
+    const today = new Date();
+    for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = day === today.getDate() && 
+                       currentCalendarMonth === today.getMonth() && 
+                       currentCalendarYear === today.getFullYear();
+        const hasWorkout = workoutDates.has(day);
+        const isSelected = selectedDate && 
+                          selectedDate.getDate() === day &&
+                          selectedDate.getMonth() === currentCalendarMonth &&
+                          selectedDate.getFullYear() === currentCalendarYear;
+        
+        const classes = ['calendar-day'];
+        if (isToday) classes.push('today');
+        if (hasWorkout) classes.push('has-workout');
+        if (isSelected) classes.push('selected');
+        
+        html += `<div class="${classes.join(' ')}" onclick="selectDate(${day})">${day}</div>`;
+    }
+    
+    // Next month days
+    const remainingCells = 42 - (startDayOfWeek + daysInMonth);
+    for (let day = 1; day <= remainingCells; day++) {
+        html += `<div class="calendar-day other-month">${day}</div>`;
+    }
+    
+    grid.innerHTML = html;
+}
+
+function changeCalendarMonth(delta) {
+    currentCalendarMonth += delta;
+    if (currentCalendarMonth > 11) {
+        currentCalendarMonth = 0;
+        currentCalendarYear++;
+    } else if (currentCalendarMonth < 0) {
+        currentCalendarMonth = 11;
+        currentCalendarYear--;
+    }
+    renderCalendar();
+}
+
+function goToToday() {
+    const today = new Date();
+    currentCalendarMonth = today.getMonth();
+    currentCalendarYear = today.getFullYear();
+    renderCalendar();
+}
+
+function selectDate(day) {
+    selectedDate = new Date(currentCalendarYear, currentCalendarMonth, day);
+    renderCalendar();
+    updateHistory();
+    document.getElementById('clearDateBtn').style.display = 'block';
+}
+
+function clearDateFilter() {
+    selectedDate = null;
+    renderCalendar();
+    updateHistory();
+    document.getElementById('clearDateBtn').style.display = 'none';
+}
+
 function updateHistory() {
     const container = document.getElementById('historyList');
     const filterValue = document.getElementById('historyFilter')?.value || 'all';
@@ -676,17 +786,23 @@ function updateHistory() {
 
     let filtered = [...workouts];
 
-    // Apply time filter
-    const now = new Date();
-    if (filterValue === 'week') {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        filtered = filtered.filter(w => new Date(w.date) >= weekAgo);
-    } else if (filterValue === 'month') {
-        const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        filtered = filtered.filter(w => new Date(w.date) >= monthAgo);
-    } else if (filterValue === 'year') {
-        const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-        filtered = filtered.filter(w => new Date(w.date) >= yearAgo);
+    // Apply date filter from calendar if a date is selected
+    if (selectedDate) {
+        const selectedDateStr = selectedDate.toISOString().split('T')[0];
+        filtered = filtered.filter(w => w.date === selectedDateStr);
+    } else {
+        // Apply time filter only if no specific date is selected
+        const now = new Date();
+        if (filterValue === 'week') {
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            filtered = filtered.filter(w => new Date(w.date) >= weekAgo);
+        } else if (filterValue === 'month') {
+            const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+            filtered = filtered.filter(w => new Date(w.date) >= monthAgo);
+        } else if (filterValue === 'year') {
+            const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+            filtered = filtered.filter(w => new Date(w.date) >= yearAgo);
+        }
     }
 
     // Apply search filter
@@ -702,7 +818,11 @@ function updateHistory() {
     filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     if (filtered.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#999; padding:40px;">No workouts found</p>';
+        if (selectedDate) {
+            container.innerHTML = `<p style="text-align:center; color:#999; padding:40px;">No workouts on ${selectedDate.toLocaleDateString()}</p>`;
+        } else {
+            container.innerHTML = '<p style="text-align:center; color:#999; padding:40px;">No workouts found</p>';
+        }
         return;
     }
 
@@ -748,6 +868,7 @@ function deleteWorkout(id) {
     updateStats();
     updateHistory();
     updatePersonalRecords();
+    renderCalendar(); // Update calendar to reflect deleted workout
     showToast('Workout deleted');
 }
 

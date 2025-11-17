@@ -89,6 +89,21 @@
         <div id="history-tab" class="tab-content">
             <section class="card">
                 <h2>Workout History</h2>
+                
+                <!-- Calendar Widget -->
+                <div class="calendar-widget">
+                    <div class="calendar-header">
+                        <h4 id="calendarMonthYear">January 2024</h4>
+                        <div class="calendar-nav">
+                            <button onclick="changeCalendarMonth(-1)" title="Previous Month">◀</button>
+                            <button onclick="goToToday()" title="Today">📅</button>
+                            <button onclick="changeCalendarMonth(1)" title="Next Month">▶</button>
+                        </div>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                    <button class="calendar-clear" onclick="clearDateFilter()" id="clearDateBtn" style="display:none;">Clear Date Filter</button>
+                </div>
+                
                 <div class="filter-bar">
                     <input type="text" id="historySearch" placeholder="Search workouts..." oninput="filterHistory()">
                     <select id="historyFilter" onchange="filterHistory()">
