@@ -48,7 +48,6 @@
             <input type="file" id="restoreFile" accept=".workoutbackup" onchange="restoreFromBackup(this.files[0])" style="display:none;">
             📥 Restore from Backup
         </label>
-        <button onclick="toggleDarkMode(); closeMenu()">🌙 Dark Mode</button>
         <button onclick="openSettingsModal(); closeMenu()">⚙️ Settings</button>
     </nav>
 
@@ -187,6 +186,18 @@
     <div id="settingsModal" class="modal" style="display:none;">
         <div class="modal-content">
             <h3>Settings</h3>
+            <label>
+                Theme:
+                <select id="themeSelect" onchange="saveSettings()">
+                    <option value="default">Modern Purple</option>
+                    <option value="typewriter">Typewriter</option>
+                    <option value="ocean">Ocean Blue</option>
+                    <option value="forest">Forest Green</option>
+                    <option value="sunset">Sunset Orange</option>
+                    <option value="minimalist">Minimalist Gray</option>
+                    <option value="midnight">Midnight Dark</option>
+                </select>
+            </label>
             <label>
                 <input type="checkbox" id="weekStartMonday" onchange="saveSettings()">
                 Week starts on Monday (default: Sunday)

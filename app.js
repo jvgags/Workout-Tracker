@@ -7,7 +7,8 @@ let measurements = [];
 let settings = {
     weekStartMonday: false,
     autoAddExercises: true,
-    weightUnit: 'lbs'
+    weightUnit: 'lbs',
+    theme: 'default'
 };
 
 let wtEncryptionKey = localStorage.getItem('wtEncryptionKey');
@@ -153,10 +154,7 @@ async function autoSave() {
         workouts,
         exercises,
         measurements,
-        settings,
-        ui: {
-            darkMode: document.body.classList.contains('dark')
-        }
+        settings
     };
     const encrypted = CryptoJS.AES.encrypt(JSON.stringify(data), wtEncryptionKey).toString();
     try {
@@ -190,15 +188,12 @@ async function loadData() {
     measurements = savedData?.measurements || [];
     settings = savedData?.settings || settings;
 
-    // Restore UI
-    if (savedData?.ui?.darkMode) {
-        document.body.classList.add('dark');
-    }
-
     // Apply settings
     document.getElementById('weekStartMonday').checked = settings.weekStartMonday;
     document.getElementById('autoAddExercises').checked = settings.autoAddExercises;
     document.getElementById('weightUnit').value = settings.weightUnit;
+    document.getElementById('themeSelect').value = settings.theme || 'default';
+    applyTheme(settings.theme || 'default');
 }
 
 function getDefaultExercises() {
@@ -310,6 +305,10 @@ async function restoreFromBackup(file) {
             updateExerciseLibrary();
             updateMeasurementHistory();
             updatePersonalRecords();
+            
+            // Apply restored theme
+            document.getElementById('themeSelect').value = settings.theme || 'default';
+            applyTheme(settings.theme || 'default');
 
             showToast('Restore complete!');
             closeMenu();
@@ -1110,11 +1109,6 @@ function closeMenu() {
     document.getElementById('menuOverlay').classList.remove('open');
 }
 
-function toggleDarkMode() {
-    document.body.classList.toggle('dark');
-    autoSave();
-}
-
 function openSettingsModal() {
     document.getElementById('settingsModal').style.display = 'flex';
 }
@@ -1127,10 +1121,20 @@ function saveSettings() {
     settings.weekStartMonday = document.getElementById('weekStartMonday').checked;
     settings.autoAddExercises = document.getElementById('autoAddExercises').checked;
     settings.weightUnit = document.getElementById('weightUnit').value;
+    settings.theme = document.getElementById('themeSelect').value;
     
+    applyTheme(settings.theme);
     autoSave();
     updateWeekStreak();
     showToast('Settings saved');
+}
+
+function applyTheme(themeName) {
+    if (themeName === 'default') {
+        document.documentElement.removeAttribute('data-theme');
+    } else {
+        document.documentElement.setAttribute('data-theme', themeName);
+    }
 }
 
 function showToast(message, duration = 3000) {
