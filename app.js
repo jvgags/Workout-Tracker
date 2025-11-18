@@ -961,20 +961,35 @@ function updateHistory() {
 
         return `
             <div class="workout-card">
-                <h4>${workout.name}</h4>
-                <div class="date">${new Date(workout.date).toLocaleDateString()}</div>
-                ${workout.notes ? `<p style="color:#666; margin-bottom:10px;">${workout.notes}</p>` : ''}
-                ${Object.entries(groupedExercises).map(([exerciseName, sets]) => `
-                    <div class="exercise-item">
-                        <strong>${exerciseName}</strong>:
-                        ${sets.map(set => 
-                            `Set ${set.setNumber || 1}: ${set.reps} reps${set.weight > 0 ? ` @ ${set.weight} ${settings.weightUnit}` : ''}${set.isSuperset ? ' (Superset)' : ''}`
-                        ).join(', ')}
+                <div class="workout-card-header">
+                    <div>
+                        <h4>${workout.name}</h4>
+                        <div class="date">${new Date(workout.date).toLocaleDateString()}</div>
                     </div>
-                `).join('')}
-                <div style="margin-top:10px; display:flex; gap:8px;">
-                    <button class="secondary-btn" onclick="editWorkout(${workout.id})">Edit</button>
-                    <button class="secondary-btn" onclick="deleteWorkout(${workout.id})">Delete</button>
+                    <div class="workout-actions">
+                        <button class="icon-btn edit-icon" onclick="editWorkout(${workout.id})" title="Edit Workout">✏️</button>
+                        <button class="icon-btn delete-icon" onclick="deleteWorkout(${workout.id})" title="Delete Workout">🗑️</button>
+                    </div>
+                </div>
+                ${workout.notes ? `<div class="workout-notes">${workout.notes}</div>` : ''}
+                <div class="exercises-container">
+                    ${Object.entries(groupedExercises).map(([exerciseName, sets]) => `
+                        <div class="exercise-block">
+                            <div class="exercise-name-header">${exerciseName}</div>
+                            <div class="sets-grid">
+                                ${sets.map(set => `
+                                    <div class="set-card ${set.isSuperset ? 'superset-card' : ''}">
+                                        <div class="set-label">Set ${set.setNumber || 1}</div>
+                                        <div class="set-details">
+                                            <span class="reps-badge">${set.reps} reps</span>
+                                            ${set.weight > 0 ? `<span class="weight-badge">${set.weight} ${settings.weightUnit}</span>` : '<span class="bodyweight-badge">Bodyweight</span>'}
+                                        </div>
+                                        ${set.isSuperset ? '<div class="superset-indicator">Superset</div>' : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;
