@@ -8,7 +8,8 @@ let settings = {
     weekStartMonday: false,
     autoAddExercises: true,
     weightUnit: 'lbs',
-    theme: 'default'
+    theme: 'default',
+    manualStreakWeeks: 0
 };
 
 // Calendar state
@@ -199,6 +200,7 @@ async function loadData() {
     document.getElementById('autoAddExercises').checked = settings.autoAddExercises;
     document.getElementById('weightUnit').value = settings.weightUnit;
     document.getElementById('themeSelect').value = settings.theme || 'default';
+    document.getElementById('manualStreakWeeks').value = settings.manualStreakWeeks || 0;
     applyTheme(settings.theme || 'default');
 }
 
@@ -398,7 +400,11 @@ function calculateWeekStreak() {
 
 function updateWeekStreak() {
     const streak = calculateWeekStreak();
-    document.getElementById('weekStreak').textContent = streak.current;
+    
+    // Use manual override if set, otherwise use calculated streak
+    const displayStreak = settings.manualStreakWeeks > 0 ? settings.manualStreakWeeks : streak.current;
+    
+    document.getElementById('weekStreak').textContent = displayStreak;
 }
 
 /* ========== WORKOUT LOGGING ========== */
@@ -1186,8 +1192,14 @@ function updateStats() {
     const streak = calculateWeekStreak();
     
     document.getElementById('totalWorkouts').textContent = workouts.length;
-    document.getElementById('currentStreak').textContent = `${streak.current} weeks`;
-    document.getElementById('bestStreak').textContent = `${streak.best} weeks`;
+    
+    // Use manual override for current streak if set
+    const currentStreakDisplay = settings.manualStreakWeeks > 0 ? settings.manualStreakWeeks : streak.current;
+    document.getElementById('currentStreak').textContent = `${currentStreakDisplay} weeks`;
+    
+    // Best streak should consider both calculated and manual
+    const bestStreakDisplay = Math.max(streak.best, settings.manualStreakWeeks || 0);
+    document.getElementById('bestStreak').textContent = `${bestStreakDisplay} weeks`;
     
     // This month workouts
     const now = new Date();
@@ -1363,6 +1375,7 @@ function saveSettings() {
     settings.autoAddExercises = document.getElementById('autoAddExercises').checked;
     settings.weightUnit = document.getElementById('weightUnit').value;
     settings.theme = document.getElementById('themeSelect').value;
+    settings.manualStreakWeeks = parseInt(document.getElementById('manualStreakWeeks').value) || 0;
     
     applyTheme(settings.theme);
     autoSave();

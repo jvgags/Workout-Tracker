@@ -228,6 +228,13 @@
                     <option value="kg">Kilograms (kg)</option>
                 </select>
             </label>
+            <label>
+                Manual Week Streak Override:
+                <input type="number" id="manualStreakWeeks" placeholder="0" min="0" onchange="saveSettings()">
+                <small style="color: var(--text-tertiary); font-size: 12px; display: block; margin-top: 4px;">
+                    Set this if migrating from another app. Leave at 0 to calculate automatically.
+                </small>
+            </label>
             <div class="modal-buttons">
                 <button onclick="closeSettingsModal()" class="primary-btn">Close</button>
             </div>
