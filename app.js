@@ -611,6 +611,7 @@ function addWorkout(event) {
     const date = document.getElementById('workoutDate').value + "T00:00:00";
     const name = document.getElementById('workoutName').value.trim();
     const notes = document.getElementById('workoutNotes').value.trim();
+    const editingId = document.getElementById('workoutForm').dataset.editingId;
 
     const exerciseRows = document.querySelectorAll('.exercise-row');
     const exerciseList = [];
@@ -645,15 +646,39 @@ function addWorkout(event) {
         return;
     }
 
-    const workout = {
-        id: Date.now(),
-        date,
-        name,
-        notes,
-        exercises: exerciseList
-    };
+    if (editingId) {
+        // Update existing workout
+        const workout = workouts.find(w => w.id === parseInt(editingId));
+        if (workout) {
+            workout.date = date;
+            workout.name = name;
+            workout.notes = notes;
+            workout.exercises = exerciseList;
+            showToast('Workout updated successfully! 💪');
+        }
+        delete document.getElementById('workoutForm').dataset.editingId;
+        
+        // Reset submit button
+        const submitBtn = document.querySelector('#workoutForm button[type="submit"]');
+        submitBtn.textContent = 'Save Workout';
+        submitBtn.style.background = '';
+        
+        // Remove cancel button
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        if (cancelBtn) cancelBtn.remove();
+    } else {
+        // Create new workout
+        const workout = {
+            id: Date.now(),
+            date,
+            name,
+            notes,
+            exercises: exerciseList
+        };
+        workouts.push(workout);
+        showToast('Workout logged successfully! 💪');
+    }
 
-    workouts.push(workout);
     autoSave();
     
     clearWorkoutForm();
@@ -661,9 +686,7 @@ function addWorkout(event) {
     updateStats();
     updateHistory();
     updatePersonalRecords();
-    renderCalendar(); // Update calendar to show new workout
-    
-    showToast('Workout logged successfully! 💪');
+    renderCalendar();
 }
 
 function clearWorkoutForm() {
@@ -672,6 +695,100 @@ function clearWorkoutForm() {
     document.getElementById('exercisesList').innerHTML = '';
     addExerciseRow();
     updateWorkoutTitle();
+}
+
+/* ========== EDIT WORKOUT ========== */
+
+function editWorkout(id) {
+    const workout = workouts.find(w => w.id === id);
+    if (!workout) return;
+    
+    // Store the workout ID we're editing
+    document.getElementById('workoutForm').dataset.editingId = id;
+    
+    // Populate the form
+    document.getElementById('workoutDate').value = workout.date.split('T')[0];
+    document.getElementById('workoutName').value = workout.name;
+    document.getElementById('workoutNotes').value = workout.notes || '';
+    
+    // Clear existing exercise rows
+    document.getElementById('exercisesList').innerHTML = '';
+    
+    // Add rows for each exercise in the workout
+    workout.exercises.forEach(ex => {
+        addExerciseRow();
+        const rows = document.querySelectorAll('.exercise-row');
+        const row = rows[rows.length - 1];
+        
+        // Find the exercise to get its subcategory
+        const exerciseData = exercises.find(e => e.name === ex.exerciseName);
+        const subcategory = exerciseData ? (exerciseData.subcategory || 'General') : 'General';
+        
+        // Set group (subcategory)
+        const groupSelect = row.querySelector('.group-select');
+        groupSelect.value = subcategory;
+        
+        // Update exercise dropdown and select exercise
+        updateExerciseDropdown(groupSelect);
+        const exerciseSelect = row.querySelector('.exercise-select');
+        exerciseSelect.value = ex.exerciseName;
+        
+        // Set other values
+        row.querySelector('.set-number').value = ex.setNumber || 1;
+        row.querySelector('.weight-input').value = ex.weight || '';
+        row.querySelector('.reps-input').value = ex.reps || '';
+        row.querySelector('.superset-checkbox').checked = ex.isSuperset || false;
+    });
+    
+    // Update the workout title
+    updateWorkoutTitle();
+    
+    // Change the submit button text
+    const submitBtn = document.querySelector('#workoutForm button[type="submit"]');
+    submitBtn.textContent = 'Update Workout';
+    submitBtn.style.background = 'var(--warning-color)';
+    
+    // Add a cancel button if it doesn't exist
+    let cancelBtn = document.getElementById('cancelEditBtn');
+    if (!cancelBtn) {
+        cancelBtn = document.createElement('button');
+        cancelBtn.id = 'cancelEditBtn';
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'secondary-btn';
+        cancelBtn.textContent = 'Cancel Edit';
+        cancelBtn.onclick = cancelWorkoutEdit;
+        document.querySelector('.form-actions').insertBefore(cancelBtn, submitBtn.nextSibling);
+    }
+    
+    // Switch to Log tab
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.querySelector('.tab-btn:first-child').classList.add('active');
+    document.getElementById('log-tab').classList.add('active');
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    showToast('Editing workout - modify and click Update');
+}
+
+function cancelWorkoutEdit() {
+    // Remove editing flag
+    delete document.getElementById('workoutForm').dataset.editingId;
+    
+    // Reset form
+    clearWorkoutForm();
+    
+    // Reset submit button
+    const submitBtn = document.querySelector('#workoutForm button[type="submit"]');
+    submitBtn.textContent = 'Save Workout';
+    submitBtn.style.background = '';
+    
+    // Remove cancel button
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    if (cancelBtn) cancelBtn.remove();
+    
+    showToast('Edit cancelled');
 }
 
 /* ========== HISTORY ========== */
@@ -849,7 +966,10 @@ function updateHistory() {
                         ).join(', ')}
                     </div>
                 `).join('')}
-                <button class="secondary-btn" style="margin-top:10px;" onclick="deleteWorkout(${workout.id})">Delete</button>
+                <div style="margin-top:10px; display:flex; gap:8px;">
+                    <button class="secondary-btn" onclick="editWorkout(${workout.id})">Edit</button>
+                    <button class="secondary-btn" onclick="deleteWorkout(${workout.id})">Delete</button>
+                </div>
             </div>
         `;
     }).join('');
@@ -868,7 +988,7 @@ function deleteWorkout(id) {
     updateStats();
     updateHistory();
     updatePersonalRecords();
-    renderCalendar(); // Update calendar to reflect deleted workout
+    renderCalendar();
     showToast('Workout deleted');
 }
 
@@ -1037,9 +1157,9 @@ function updateExerciseLibrary() {
                                     <div class="exercise-tag ${ex.disabled ? 'disabled' : ''}">
                                         <span class="exercise-name">${ex.name}</span>
                                         ${ex.videoLink ? `<a href="${ex.videoLink}" target="_blank" class="video-link" title="Watch video">🎥</a>` : ''}
-                                        <button onclick="openEditExerciseModal('${ex.name.replace(/'/g, "\\'")}')" class="edit-btn" title="Edit">✏️</button>
-                                        <button onclick="toggleExerciseDisabled('${ex.name.replace(/'/g, "\\'")}')" class="toggle-btn" title="${ex.disabled ? 'Enable' : 'Disable'}">${ex.disabled ? '👁️' : '🚫'}</button>
-                                        <button onclick="deleteExercise('${ex.name.replace(/'/g, "\\'")}')" class="delete-btn" title="Delete">×</button>
+                                        <button onclick="openEditExerciseModal('${ex.name.replace(/'/g, "\\'")}')"; class="edit-btn" title="Edit">✏️</button>
+                                        <button onclick="toggleExerciseDisabled('${ex.name.replace(/'/g, "\\'")}')"; class="toggle-btn" title="${ex.disabled ? 'Enable' : 'Disable'}">${ex.disabled ? '👁️' : '🚫'}</button>
+                                        <button onclick="deleteExercise('${ex.name.replace(/'/g, "\\'")}')"; class="delete-btn" title="Delete">×</button>
                                     </div>
                                 `).join('')}
                             </div>
