@@ -57,6 +57,7 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('log')">Log Workout</button>
             <button class="tab-btn" onclick="switchTab('history')">History</button>
+            <button class="tab-btn" onclick="switchTab('templates')">Templates</button>
             <button class="tab-btn" onclick="switchTab('exercises')">Exercises</button>
             <button class="tab-btn" onclick="switchTab('stats')">Stats & PRs</button>
             <button class="tab-btn" onclick="switchTab('measurements')">Body Measurements</button>
@@ -69,7 +70,11 @@
                 <form id="workoutForm" onsubmit="addWorkout(event)">
                     <div class="form-row">
                         <input type="date" id="workoutDate" onchange="updateWorkoutTitle()" required>
-                        <input type="text" id="workoutName" placeholder="Workout Name (e.g., Chest Day)" required>
+                        <div style="position: relative; display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="workoutName" placeholder="Workout Name (e.g., Chest Day)" required list="templateSuggestions">
+                            <datalist id="templateSuggestions"></datalist>
+                            <button type="button" onclick="loadTemplate()" class="secondary-btn" style="white-space: nowrap;">Load Template</button>
+                        </div>
                     </div>
                     <div class="form-row">
                         <textarea id="workoutNotes" placeholder="Notes (optional)" rows="2"></textarea>
@@ -114,6 +119,37 @@
                     </select>
                 </div>
                 <div id="historyList"></div>
+            </section>
+        </div>
+
+        <!-- Templates Tab -->
+        <div id="templates-tab" class="tab-content">
+            <section class="card">
+                <h2>Workout Templates</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Create pre-defined workout templates with exercises and sets. Use them from the Log Workout tab to quickly log your routine.
+                </p>
+                
+                <div class="template-creator">
+                    <h3>Create New Template</h3>
+                    <div class="form-row">
+                        <input type="text" id="newTemplateName" placeholder="Template Name (e.g., Push Day)" required>
+                    </div>
+                    
+                    <h4>Template Exercises</h4>
+                    <div id="templateExercisesList"></div>
+                    <button type="button" onclick="addTemplateExerciseRow()" class="secondary-btn">+ Add Exercise</button>
+                    
+                    <div style="margin-top: 20px;">
+                        <button onclick="saveTemplate()" class="primary-btn">Save Template</button>
+                        <button onclick="clearTemplateForm()" class="secondary-btn">Clear</button>
+                    </div>
+                </div>
+                
+                <hr style="margin: 30px 0; border: none; border-top: 2px solid var(--border-color);">
+                
+                <h3>Saved Templates</h3>
+                <div id="templatesList"></div>
             </section>
         </div>
 

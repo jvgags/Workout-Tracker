@@ -899,6 +899,91 @@ textarea {
     min-width: 200px;
 }
 
+/* Templates */
+.template-creator {
+    background: var(--bg-tertiary);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+}
+
+.template-creator h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--accent-primary);
+}
+
+.template-creator h4 {
+    margin: 20px 0 10px 0;
+    color: var(--text-secondary);
+}
+
+.template-exercise-row {
+    margin-bottom: 12px;
+}
+
+.template-row-content {
+    display: grid;
+    grid-template-columns: 1.5fr 2fr 1fr 40px;
+    gap: 10px;
+    align-items: end;
+}
+
+.template-card {
+    background: var(--bg-tertiary);
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    border-left: 4px solid var(--accent-primary);
+}
+
+.template-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.template-header h4 {
+    margin: 0;
+    color: var(--accent-primary);
+}
+
+.template-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.template-exercises {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.template-exercise-item {
+    background: var(--bg-secondary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border-color);
+}
+
+.template-exercise-item .exercise-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.sets-badge {
+    background: var(--accent-gradient);
+    color: var(--text-inverse);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
 /* Calendar Widget */
 .calendar-widget {
     background: var(--bg-secondary);
@@ -1130,6 +1215,10 @@ textarea {
         align-items: stretch;
     }
 
+    .template-row-content {
+        grid-template-columns: 1fr;
+    }
+
     .input-wrapper {
         width: 100%;
     }
@@ -1153,5 +1242,9 @@ textarea {
 
     .subcategory-header {
         font-size: 14px;
+    }
+    
+    .sets-grid {
+        grid-template-columns: 1fr;
     }
 }

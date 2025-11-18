@@ -4,6 +4,7 @@
 let workouts = [];
 let exercises = [];
 let measurements = [];
+let templates = [];
 let settings = {
     weekStartMonday: false,
     autoAddExercises: true,
@@ -107,6 +108,8 @@ window.onload = async function() {
     updateExerciseLibrary();
     updateMeasurementHistory();
     updatePersonalRecords();
+    updateTemplatesList();
+    updateTemplateSuggestions();
     renderCalendar();
 
     // Menu toggle
@@ -161,6 +164,7 @@ async function autoSave() {
         workouts,
         exercises,
         measurements,
+        templates,
         settings
     };
     const encrypted = CryptoJS.AES.encrypt(JSON.stringify(data), wtEncryptionKey).toString();
@@ -193,6 +197,7 @@ async function loadData() {
     workouts = savedData?.workouts || [];
     exercises = savedData?.exercises || getDefaultExercises();
     measurements = savedData?.measurements || [];
+    templates = savedData?.templates || [];
     settings = savedData?.settings || settings;
 
     // Apply settings
@@ -254,6 +259,7 @@ async function createBackup() {
             workouts,
             exercises,
             measurements,
+            templates,
             settings,
             version: '1.0',
             timestamp: new Date().toISOString()
@@ -302,6 +308,7 @@ async function restoreFromBackup(file) {
             workouts = data.workouts || [];
             exercises = data.exercises || [];
             measurements = data.measurements || [];
+            templates = data.templates || [];
             settings = data.settings || settings;
 
             await autoSave();
@@ -313,6 +320,8 @@ async function restoreFromBackup(file) {
             updateExerciseLibrary();
             updateMeasurementHistory();
             updatePersonalRecords();
+            updateTemplatesList();
+            updateTemplateSuggestions();
             
             // Apply restored theme
             document.getElementById('themeSelect').value = settings.theme || 'default';
@@ -701,6 +710,283 @@ function clearWorkoutForm() {
     document.getElementById('exercisesList').innerHTML = '';
     addExerciseRow();
     updateWorkoutTitle();
+}
+
+/* ========== WORKOUT TEMPLATES ========== */
+
+function addTemplateExerciseRow() {
+    const container = document.getElementById('templateExercisesList');
+    const row = document.createElement('div');
+    row.className = 'template-exercise-row';
+    
+    // Get all unique subcategories from enabled exercises only
+    const subcategories = [...new Set(exercises.filter(e => !e.disabled).map(e => e.subcategory || 'General'))].sort();
+    
+    row.innerHTML = `
+        <div class="template-row-content">
+            <div class="input-wrapper">
+                <label>Group:</label>
+                <select class="template-group-select" onchange="updateTemplateExerciseDropdown(this)" required>
+                    <option value="">Select Group</option>
+                    ${subcategories.map(sub => `<option value="${sub}">${sub}</option>`).join('')}
+                </select>
+            </div>
+            <div class="input-wrapper">
+                <label>Exercise:</label>
+                <select class="template-exercise-select" required disabled>
+                    <option value="">Select Group First</option>
+                </select>
+            </div>
+            <div class="input-wrapper">
+                <label>Number of Sets:</label>
+                <input type="number" class="template-sets-input" placeholder="3" min="1" value="3" required>
+            </div>
+            <div class="input-wrapper">
+                <label>&nbsp;</label>
+                <button type="button" class="remove-btn" onclick="removeTemplateExerciseRow(this)">×</button>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(row);
+    row.querySelector('.template-group-select').focus();
+}
+
+function updateTemplateExerciseDropdown(groupSelect) {
+    const row = groupSelect.closest('.template-exercise-row');
+    const exerciseSelect = row.querySelector('.template-exercise-select');
+    const selectedGroup = groupSelect.value;
+    
+    if (!selectedGroup) {
+        exerciseSelect.disabled = true;
+        exerciseSelect.innerHTML = '<option value="">Select Group First</option>';
+        return;
+    }
+    
+    // Filter exercises by subcategory and exclude disabled ones
+    const filteredExercises = exercises
+        .filter(e => (e.subcategory || 'General') === selectedGroup && !e.disabled)
+        .sort((a, b) => a.name.localeCompare(b.name));
+    
+    exerciseSelect.disabled = false;
+    exerciseSelect.innerHTML = `
+        <option value="">Select Exercise</option>
+        ${filteredExercises.map(ex => `<option value="${ex.name}">${ex.name}</option>`).join('')}
+    `;
+}
+
+function removeTemplateExerciseRow(btn) {
+    const container = document.getElementById('templateExercisesList');
+    if (container.children.length > 1) {
+        btn.closest('.template-exercise-row').remove();
+    } else {
+        showToast('At least one exercise is required');
+    }
+}
+
+function saveTemplate() {
+    const name = document.getElementById('newTemplateName').value.trim();
+    
+    if (!name) {
+        showToast('Please enter a template name');
+        return;
+    }
+    
+    const exerciseRows = document.querySelectorAll('.template-exercise-row');
+    const templateExercises = [];
+    
+    exerciseRows.forEach(row => {
+        const exerciseName = row.querySelector('.template-exercise-select').value;
+        const sets = parseInt(row.querySelector('.template-sets-input').value);
+        
+        if (exerciseName && sets) {
+            templateExercises.push({ exerciseName, sets });
+        }
+    });
+    
+    if (templateExercises.length === 0) {
+        showToast('Please add at least one exercise');
+        return;
+    }
+    
+    // Check if template name already exists
+    const existingIndex = templates.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
+    
+    if (existingIndex >= 0) {
+        if (!confirm('A template with this name already exists. Overwrite it?')) {
+            return;
+        }
+        templates[existingIndex] = {
+            id: templates[existingIndex].id,
+            name,
+            exercises: templateExercises
+        };
+        showToast('Template updated!');
+    } else {
+        templates.push({
+            id: Date.now(),
+            name,
+            exercises: templateExercises
+        });
+        showToast('Template saved!');
+    }
+    
+    autoSave();
+    updateTemplatesList();
+    updateTemplateSuggestions();
+    clearTemplateForm();
+}
+
+function clearTemplateForm() {
+    document.getElementById('newTemplateName').value = '';
+    document.getElementById('templateExercisesList').innerHTML = '';
+    addTemplateExerciseRow();
+}
+
+function updateTemplatesList() {
+    const container = document.getElementById('templatesList');
+    
+    if (templates.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#999; padding:20px;">No templates yet. Create one above!</p>';
+        return;
+    }
+    
+    container.innerHTML = templates.map(template => `
+        <div class="template-card">
+            <div class="template-header">
+                <h4>${template.name}</h4>
+                <div class="template-actions">
+                    <button class="icon-btn" onclick="editTemplate(${template.id})" title="Edit Template">✏️</button>
+                    <button class="icon-btn" onclick="useTemplate(${template.id})" title="Use Template">▶️</button>
+                    <button class="icon-btn delete-icon" onclick="deleteTemplate(${template.id})" title="Delete Template">🗑️</button>
+                </div>
+            </div>
+            <div class="template-exercises">
+                ${template.exercises.map(ex => `
+                    <div class="template-exercise-item">
+                        <span class="exercise-name">${ex.exerciseName}</span>
+                        <span class="sets-badge">${ex.sets} sets</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateTemplateSuggestions() {
+    const datalist = document.getElementById('templateSuggestions');
+    datalist.innerHTML = templates.map(t => `<option value="${t.name}">`).join('');
+}
+
+function loadTemplate() {
+    const workoutNameInput = document.getElementById('workoutName');
+    const templateName = workoutNameInput.value.trim();
+    
+    if (!templateName) {
+        showToast('Enter a template name to load');
+        return;
+    }
+    
+    const template = templates.find(t => t.name.toLowerCase() === templateName.toLowerCase());
+    
+    if (!template) {
+        showToast('Template not found');
+        return;
+    }
+    
+    useTemplate(template.id);
+}
+
+function useTemplate(templateId) {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+    
+    // Clear existing exercise rows
+    document.getElementById('exercisesList').innerHTML = '';
+    
+    // Populate exercises from template
+    template.exercises.forEach(templateEx => {
+        const exerciseData = exercises.find(e => e.name === templateEx.exerciseName);
+        const subcategory = exerciseData ? (exerciseData.subcategory || 'General') : 'General';
+        
+        // Add rows for each set
+        for (let i = 1; i <= templateEx.sets; i++) {
+            addExerciseRow();
+            const rows = document.querySelectorAll('.exercise-row');
+            const row = rows[rows.length - 1];
+            
+            // Set group (subcategory)
+            const groupSelect = row.querySelector('.group-select');
+            groupSelect.value = subcategory;
+            
+            // Update exercise dropdown and select exercise
+            updateExerciseDropdown(groupSelect);
+            const exerciseSelect = row.querySelector('.exercise-select');
+            exerciseSelect.value = templateEx.exerciseName;
+            
+            // Set the set number
+            row.querySelector('.set-number').value = i;
+        }
+    });
+    
+    // Switch to Log tab and set the workout name
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.querySelector('.tab-btn:first-child').classList.add('active');
+    document.getElementById('log-tab').classList.add('active');
+    
+    document.getElementById('workoutName').value = template.name;
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast(`Template "${template.name}" loaded! Fill in weights and reps.`);
+}
+
+function editTemplate(templateId) {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+    
+    // Populate the form
+    document.getElementById('newTemplateName').value = template.name;
+    document.getElementById('templateExercisesList').innerHTML = '';
+    
+    template.exercises.forEach(ex => {
+        addTemplateExerciseRow();
+        const rows = document.querySelectorAll('.template-exercise-row');
+        const row = rows[rows.length - 1];
+        
+        // Find the exercise to get its subcategory
+        const exerciseData = exercises.find(e => e.name === ex.exerciseName);
+        const subcategory = exerciseData ? (exerciseData.subcategory || 'General') : 'General';
+        
+        // Set group
+        const groupSelect = row.querySelector('.template-group-select');
+        groupSelect.value = subcategory;
+        
+        // Update exercise dropdown and select exercise
+        updateTemplateExerciseDropdown(groupSelect);
+        const exerciseSelect = row.querySelector('.template-exercise-select');
+        exerciseSelect.value = ex.exerciseName;
+        
+        // Set number of sets
+        row.querySelector('.template-sets-input').value = ex.sets;
+    });
+    
+    // Scroll to form
+    document.querySelector('#templates-tab .template-creator').scrollIntoView({ behavior: 'smooth' });
+    showToast('Edit template and click Save to update');
+}
+
+function deleteTemplate(templateId) {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+    
+    if (!confirm(`Delete template "${template.name}"?`)) return;
+    
+    templates = templates.filter(t => t.id !== templateId);
+    autoSave();
+    updateTemplatesList();
+    updateTemplateSuggestions();
+    showToast('Template deleted');
 }
 
 /* ========== EDIT WORKOUT ========== */
