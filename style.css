@@ -487,7 +487,7 @@ textarea {
     display: grid;
     grid-template-columns: 1.5fr 2fr 0.8fr 0.8fr 1fr 1.2fr 40px;
     gap: 10px;
-    margin-bottom: 15px;
+    margin-bottom: 9px;
     align-items: end;
 }
 
@@ -552,6 +552,7 @@ textarea {
     cursor: pointer;
     font-size: 18px;
     font-weight: bold;
+    margin-bottom: 2px;
 }
 
 .remove-btn:hover {
@@ -1222,7 +1223,7 @@ textarea {
         background: var(--bg-tertiary);
         padding: 12px;
         border-radius: 8px;
-        margin-bottom: 15px;
+        margin-bottom: 9px;
         align-items: stretch;
     }
 
