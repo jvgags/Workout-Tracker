@@ -588,11 +588,21 @@ function handleRepsTab(event) {
         const row = event.target.closest('.exercise-row');
         const container = document.getElementById('exercisesList');
         const allRows = Array.from(container.children);
-        const isLastRow = allRows[allRows.length - 1] === row;
+        const currentIndex = allRows.indexOf(row);
+        const isLastRow = currentIndex === allRows.length - 1;
+        
+        // If not the last row, move to next row's weight input
+        if (!isLastRow) {
+            event.preventDefault();
+            const nextRow = allRows[currentIndex + 1];
+            const nextWeightInput = nextRow.querySelector('.weight-input');
+            if (nextWeightInput) {
+                nextWeightInput.focus();
+            }
+            return;
+        }
         
         // Only auto-add if this is the last row
-        if (!isLastRow) return;
-        
         // Check if all required fields are filled
         const groupSelect = row.querySelector('.group-select');
         const exerciseSelect = row.querySelector('.exercise-select');
